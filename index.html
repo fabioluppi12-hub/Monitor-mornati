@@ -1,0 +1,1026 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="UPC Monitor">
+  <title>Mornati Paglia Monitor</title>
+  <style>
+    :root {
+      --bg-dark: #0f1115;
+      --bg-card: #181b22;
+      --bg-input: #222630;
+      --border: #2e3442;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --accent-orange: #ff6b2b;
+      --accent-red: #ef4444;
+      --accent-green: #10b981;
+      --radius: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      padding: env(safe-area-inset-top, 16px) 16px env(safe-area-inset-bottom, 24px) 16px;
+      line-height: 1.45;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 0 18px 0;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 16px;
+    }
+
+    h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 99px;
+      background: #27272a;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .status-badge.active {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--accent-green);
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .status-badge.active .dot {
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.8); }
+    }
+
+    /* Alert Banner */
+    #alertBanner {
+      display: none;
+      background: linear-gradient(135deg, #dc2626, #ea580c);
+      color: white;
+      padding: 16px;
+      border-radius: var(--radius);
+      margin-bottom: 16px;
+      box-shadow: 0 8px 24px rgba(239, 68, 68, 0.35);
+      animation: slideDown 0.3s ease-out;
+    }
+
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    #alertBanner .alert-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 800;
+      font-size: 1rem;
+      margin-bottom: 6px;
+    }
+
+    #alertBanner button.close-alert {
+      background: rgba(0, 0, 0, 0.25);
+      border: none;
+      color: white;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 0.8rem;
+      font-weight: 600;
+    }
+
+    /* Cards & Controls */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 14px;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      text-align: center;
+    }
+
+    .stat-box {
+      background: var(--bg-input);
+      padding: 10px 6px;
+      border-radius: 10px;
+    }
+
+    .stat-val {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .stat-val.highlight {
+      color: var(--accent-orange);
+    }
+
+    .stat-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 2px;
+      text-transform: uppercase;
+    }
+
+    .btn-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 11px;
+      padding: 13px 14px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      transition: transform 0.1s, opacity 0.2s;
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent-orange), var(--accent-red));
+      color: white;
+      grid-column: span 2;
+      font-size: 1rem;
+    }
+
+    .btn-primary.running {
+      background: #27272a;
+      border: 1px solid var(--accent-red);
+      color: var(--accent-red);
+    }
+
+    .btn-secondary {
+      background: var(--bg-input);
+      color: var(--text-main);
+      border: 1px solid var(--border);
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.12);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    /* Form Controls */
+    .control-group {
+      margin-bottom: 12px;
+    }
+
+    .control-group:last-child {
+      margin-bottom: 0;
+    }
+
+    label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      font-weight: 500;
+    }
+
+    .input-inline {
+      display: flex;
+      gap: 8px;
+    }
+
+    input[type="text"], input[type="number"] {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      outline: none;
+    }
+
+    input:focus {
+      border-color: var(--accent-orange);
+    }
+
+    /* Keyword Tags */
+    .tags-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .tag {
+      background: rgba(255, 107, 43, 0.15);
+      border: 1px solid rgba(255, 107, 43, 0.4);
+      color: #fdba74;
+      padding: 5px 10px;
+      border-radius: 8px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tag span {
+      cursor: pointer;
+      opacity: 0.8;
+      font-weight: bold;
+    }
+
+    /* Product List */
+    .section-title {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .product-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .product-item {
+      background: var(--bg-input);
+      border-radius: 11px;
+      padding: 12px;
+      border-left: 4px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .product-item.is-new {
+      border-left-color: var(--accent-red);
+      background: rgba(239, 68, 68, 0.12);
+    }
+
+    .product-badge {
+      display: inline-block;
+      background: var(--accent-red);
+      color: white;
+      font-size: 0.68rem;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 4px;
+      width: fit-content;
+      text-transform: uppercase;
+    }
+
+    .product-title {
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text-main);
+      text-decoration: none;
+    }
+
+    .product-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+    }
+
+    .mini-btn {
+      font-size: 0.75rem;
+      padding: 5px 10px;
+      border-radius: 6px;
+      background: var(--bg-card);
+      color: var(--text-main);
+      text-decoration: none;
+      border: 1px solid var(--border);
+    }
+
+    /* Error Box & Logs */
+    #errorBox {
+      display: none;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid var(--accent-red);
+      color: #fca5a5;
+      padding: 12px;
+      border-radius: 10px;
+      font-size: 0.85rem;
+      margin-bottom: 14px;
+    }
+
+    .log-box {
+      background: #0a0c0f;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      height: 150px;
+      overflow-y: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 0.74rem;
+      color: #9ca3af;
+    }
+
+    .log-entry {
+      margin-bottom: 4px;
+      border-bottom: 1px solid rgba(255,255,255,0.04);
+      padding-bottom: 3px;
+    }
+
+    .log-entry.err { color: #f87171; }
+    .log-entry.ok { color: #34d399; }
+    .log-entry.warn { color: #fbbf24; }
+
+    .ios-hint {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      background: rgba(255,255,255,0.03);
+      padding: 10px;
+      border-radius: 10px;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🔍 Mornati Monitor</h1>
+    <div id="statusBadge" class="status-badge">
+      <div class="dot"></div>
+      <span id="statusText">In pausa</span>
+    </div>
+  </header>
+
+  <!-- Banner Rosso Nuovi Prodotti -->
+  <div id="alertBanner">
+    <div class="alert-header">
+      <span>🚨 NUOVO PRODOTTO TROVATO!</span>
+      <button class="close-alert" onclick="dismissAlert()">Chiudi</button>
+    </div>
+    <div id="alertDetails" style="font-size: 0.88rem;"></div>
+  </div>
+
+  <!-- Errore Rete / CORS -->
+  <div id="errorBox"></div>
+
+  <!-- Dashboard Principale -->
+  <div class="card">
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div id="lastCheckVal" class="stat-val">--:--</div>
+        <div class="stat-label">Ultimo Check</div>
+      </div>
+      <div class="stat-box">
+        <div id="newCountVal" class="stat-val highlight">0</div>
+        <div class="stat-label">Nuovi Trovati</div>
+      </div>
+      <div class="stat-box">
+        <div id="seenCountVal" class="stat-val">0</div>
+        <div class="stat-label">In Memoria</div>
+      </div>
+    </div>
+
+    <div class="btn-row">
+      <button id="toggleBtn" class="btn-primary" onclick="toggleMonitoring()">▶ Avvia Monitoraggio</button>
+      <button class="btn-secondary" onclick="runCheckNow()">🔄 Controlla Ora</button>
+      <button class="btn-danger" onclick="clearHistory()">🗑️ Cancella Storico</button>
+    </div>
+  </div>
+
+  <!-- Nuovi Prodotti Evidenziati -->
+  <div class="card" id="newProductsCard" style="display:none; border-color: var(--accent-red);">
+    <div class="section-title" style="color: #fca5a5;">
+      <span>🔥 Nuovi Rilevamenti</span>
+      <button class="mini-btn" onclick="markAllAsRead()">Segna tutti letti</button>
+    </div>
+    <div id="newProductsList" class="product-list"></div>
+  </div>
+
+  <!-- Configurazione -->
+  <div class="card">
+    <div class="section-title">⚙️ Impostazioni & Notifiche iOS</div>
+
+    <div class="control-group">
+      <label for="intervalInput">Intervallo controllo (secondi - default 150s)</label>
+      <input type="number" id="intervalInput" min="30" max="3600" value="150" onchange="saveSettings()">
+    </div>
+
+    <div class="control-group">
+      <label>Termini di ricerca attivi (titolo deve contenerli)</label>
+      <div class="input-inline">
+        <input type="text" id="newKeywordInput" placeholder="Es. prismatic, etb, bundle..." onkeypress="if(event.key==='Enter') addKeyword()">
+        <button class="btn-secondary" style="padding: 10px 16px;" onclick="addKeyword()">+</button>
+      </div>
+      <div id="keywordsList" class="tags-container"></div>
+    </div>
+
+    <div class="control-group" style="margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border);">
+      <label>Notifiche iOS & Push Esterne (Opzionale)</label>
+      <div class="btn-row" style="margin-top: 6px;">
+        <button class="btn-secondary" onclick="requestNotificationPermission()" style="font-size: 0.8rem;">🔔 Attiva Notifiche Home</button>
+        <button class="btn-secondary" onclick="testAlert()" style="font-size: 0.8rem;">🔊 Testa Suono/Alert</button>
+      </div>
+      <div style="margin-top: 10px;">
+        <label for="ntfyTopicInput">Canale Push ntfy.sh (per notifiche reali su iPhone anche a schermo bloccato)</label>
+        <input type="text" id="ntfyTopicInput" placeholder="Es. mornati_upc_fabio92" onchange="saveSettings()">
+      </div>
+      <div class="ios-hint">
+        💡 <b>Consiglio iOS:</b> Tocca <i>Condividi → Aggiungi alla schermata Home</i> in Safari per abilitare le notifiche iOS. Se usi l'app gratuita <b>ntfy</b> su iPhone e inserisci lo stesso nome canale qui sopra, riceverai notifiche push istantanee.
+      </div>
+    </div>
+  </div>
+
+  <!-- Prodotti in Archivio -->
+  <div class="card">
+    <div class="section-title">
+      <span>📦 Prodotti Monitorati (Già visti)</span>
+      <span id="archiveBadge">0</span>
+    </div>
+    <div id="seenProductsList" class="product-list">
+      <div style="color: var(--text-muted); font-size: 0.85rem;">Nessun prodotto ancora salvato. Avvia il monitoraggio.</div>
+    </div>
+  </div>
+
+  <!-- Log Attività -->
+  <div class="card">
+    <div class="section-title">
+      <span>📟 Log Attività</span>
+      <button class="mini-btn" onclick="clearLogs()">Pulisci log</button>
+    </div>
+    <div id="logBox" class="log-box"></div>
+  </div>
+
+<script>
+  const STORAGE_KEY_SEEN = 'mp_seen_products_v1';
+  const STORAGE_KEY_NEW = 'mp_new_products_v1';
+  const STORAGE_KEY_SETTINGS = 'mp_settings_v1';
+
+  let isRunning = false;
+  let timerId = null;
+  let wakeLock = null;
+  let audioCtx = null;
+
+  let settings = {
+    interval: 150,
+    keywords: ['ultra', 'upc'],
+    ntfyTopic: ''
+  };
+
+  let seenProducts = {};
+  let newProducts = [];
+
+  const PROXIES = [
+    url => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    url => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`
+  ];
+
+  window.addEventListener('DOMContentLoaded', () => {
+    loadState();
+    renderKeywords();
+    renderLists();
+    updateStats();
+    addLog('App pronta. In attesa di avvio.', 'ok');
+  });
+
+  function loadState() {
+    try {
+      const savedSettings = JSON.parse(localStorage.getItem(STORAGE_KEY_SETTINGS));
+      if (savedSettings) settings = { ...settings, ...savedSettings };
+
+      const savedSeen = JSON.parse(localStorage.getItem(STORAGE_KEY_SEEN));
+      if (savedSeen) seenProducts = savedSeen;
+
+      const savedNew = JSON.parse(localStorage.getItem(STORAGE_KEY_NEW));
+      if (savedNew) newProducts = savedNew;
+    } catch (e) {
+      addLog('Errore lettura localStorage: ' + e.message, 'err');
+    }
+
+    document.getElementById('intervalInput').value = settings.interval;
+    document.getElementById('ntfyTopicInput').value = settings.ntfyTopic || '';
+  }
+
+  function saveState() {
+    try {
+      localStorage.setItem(STORAGE_KEY_SEEN, JSON.stringify(seenProducts));
+      localStorage.setItem(STORAGE_KEY_NEW, JSON.stringify(newProducts));
+    } catch (e) {
+      addLog('Errore salvataggio localStorage', 'err');
+    }
+  }
+
+  function saveSettings() {
+    const val = parseInt(document.getElementById('intervalInput').value, 10);
+    settings.interval = (val && val >= 20) ? val : 150;
+    document.getElementById('intervalInput').value = settings.interval;
+    settings.ntfyTopic = document.getElementById('ntfyTopicInput').value.trim();
+    localStorage.setItem(STORAGE_KEY_SETTINGS, JSON.stringify(settings));
+
+    if (isRunning) {
+      restartTimer();
+      addLog(`Intervallo aggiornato a ${settings.interval}s`, 'warn');
+    }
+  }
+
+  function addKeyword() {
+    const input = document.getElementById('newKeywordInput');
+    const kw = input.value.trim().toLowerCase();
+    if (!kw) return;
+    if (!settings.keywords.includes(kw)) {
+      settings.keywords.push(kw);
+      saveSettings();
+      renderKeywords();
+      addLog(`Aggiunto termine: "${kw}"`, 'ok');
+    }
+    input.value = '';
+  }
+
+  function removeKeyword(kw) {
+    if (settings.keywords.length <= 1) {
+      alert('Deve rimanere almeno un termine di ricerca.');
+      return;
+    }
+    settings.keywords = settings.keywords.filter(k => k !== kw);
+    saveSettings();
+    renderKeywords();
+    addLog(`Rimosso termine: "${kw}"`, 'warn');
+  }
+
+  function renderKeywords() {
+    const container = document.getElementById('keywordsList');
+    container.innerHTML = settings.keywords.map(kw => `
+      <div class="tag">
+        ${escapeHtml(kw)}
+        <span onclick="removeKeyword('${escapeHtml(kw)}')">&times;</span>
+      </div>
+    `).join('');
+  }
+
+  async function toggleMonitoring() {
+    if (isRunning) {
+      stopMonitoring();
+    } else {
+      initAudio();
+      isRunning = true;
+      updateUIStatus(true);
+      await requestWakeLock();
+      addLog(`Monitoraggio avviato (ogni ${settings.interval}s)`, 'ok');
+      await runCheckNow();
+      restartTimer();
+    }
+  }
+
+  function stopMonitoring() {
+    isRunning = false;
+    clearInterval(timerId);
+    timerId = null;
+    releaseWakeLock();
+    updateUIStatus(false);
+    addLog('Monitoraggio fermato.', 'warn');
+  }
+
+  function restartTimer() {
+    clearInterval(timerId);
+    timerId = setInterval(() => {
+      if (isRunning) runCheckNow();
+    }, settings.interval * 1000);
+  }
+
+  function updateUIStatus(active) {
+    const badge = document.getElementById('statusBadge');
+    const text = document.getElementById('statusText');
+    const btn = document.getElementById('toggleBtn');
+
+    if (active) {
+      badge.classList.add('active');
+      text.textContent = 'Attivo';
+      btn.textContent = '⏹ Ferma Monitoraggio';
+      btn.classList.add('running');
+    } else {
+      badge.classList.remove('active');
+      text.textContent = 'In pausa';
+      btn.textContent = '▶ Avvia Monitoraggio';
+      btn.classList.remove('running');
+    }
+  }
+
+  async function requestWakeLock() {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLock = await navigator.wakeLock.request('screen');
+        addLog('Blocco sospensione schermo attivo.', 'ok');
+      }
+    } catch (e) {}
+  }
+
+  function releaseWakeLock() {
+    if (wakeLock) {
+      wakeLock.release().catch(() => {});
+      wakeLock = null;
+    }
+  }
+
+  async function fetchWithFallback(targetUrl) {
+    let lastError = null;
+    for (let i = 0; i < PROXIES.length; i++) {
+      const proxyUrl = PROXIES[i](targetUrl);
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15000);
+        const response = await fetch(proxyUrl, { signal: controller.signal, cache: 'no-store' });
+        clearTimeout(timeout);
+
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const html = await response.text();
+        if (!html || html.length < 200) throw new Error('Risposta vuota dal proxy');
+        return html;
+      } catch (err) {
+        lastError = err;
+      }
+    }
+    throw lastError || new Error('Impossibile raggiungere il sito');
+  }
+
+  function extractProductsFromHTML(html, searchKeyword) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const found = [];
+    const seenUrlsInPage = new Set();
+
+    const links = doc.querySelectorAll('a[href*="/products/"]');
+
+    links.forEach(a => {
+      let href = a.getAttribute('href');
+      if (!href) return;
+
+      const cleanPath = href.split('?')[0];
+      const fullUrl = cleanPath.startsWith('http')
+        ? cleanPath
+        : `https://www.mornatipaglia.com${cleanPath.startsWith('/') ? '' : '/'}${cleanPath}`;
+
+      if (seenUrlsInPage.has(fullUrl)) return;
+
+      let title = '';
+      const heading = a.querySelector('h1, h2, h3, h4, .card__heading, .product-title, .grid-view-item__title');
+      if (heading) {
+        title = heading.textContent.trim();
+      } else {
+        title = a.getAttribute('title') || a.textContent.trim();
+      }
+
+      title = title.replace(/\s+/g, ' ').trim();
+
+      if (!title || title.length < 3) return;
+      if (/^(acquista|scopri|esaurito|sold out|€|\d+[.,]\d+)/i.test(title)) return;
+
+      const titleLower = title.toLowerCase();
+      const matchesKeyword = settings.keywords.some(kw => titleLower.includes(kw));
+
+      if (matchesKeyword) {
+        seenUrlsInPage.add(fullUrl);
+        found.push({ title, url: fullUrl });
+      }
+    });
+
+    return found;
+  }
+
+  async function runCheckNow() {
+    hideError();
+    const nowStr = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    addLog(`Avvio scansione per: ${settings.keywords.join(', ')}...`);
+
+    const isFirstEverScan = Object.keys(seenProducts).length === 0;
+    let newlyDiscovered = [];
+    let hadErrors = false;
+
+    for (const kw of settings.keywords) {
+      const targetUrl = `https://www.mornatipaglia.com/search?q=${encodeURIComponent(kw)}`;
+      try {
+        const html = await fetchWithFallback(targetUrl);
+        const products = extractProductsFromHTML(html, kw);
+        addLog(`[${kw}] Trovati ${products.length} prodotti pertinenti.`);
+
+        for (const prod of products) {
+          if (!seenProducts[prod.url]) {
+            seenProducts[prod.url] = {
+              title: prod.title,
+              url: prod.url,
+              firstSeen: nowStr
+            };
+
+            if (!isFirstEverScan) {
+              const item = { ...prod, foundAt: nowStr };
+              newProducts.unshift(item);
+              newlyDiscovered.push(item);
+            }
+          }
+        }
+      } catch (err) {
+        hadErrors = true;
+        const msg = `Errore caricamento "${kw}": ${err.message}`;
+        addLog(msg, 'err');
+        showError(`⚠️ Problema di rete/CORS durante il controllo di "${kw}". Riproverò al prossimo ciclo. (${err.message})`);
+      }
+    }
+
+    document.getElementById('lastCheckVal').textContent = nowStr;
+    saveState();
+    renderLists();
+    updateStats();
+
+    if (isFirstEverScan && Object.keys(seenProducts).length > 0) {
+      addLog(`Indicizzati ${Object.keys(seenProducts).length} prodotti esistenti come base.`, 'ok');
+    }
+
+    if (newlyDiscovered.length > 0) {
+      triggerAllAlerts(newlyDiscovered);
+    } else if (!hadErrors) {
+      addLog('Nessuna novità rilevata.', 'ok');
+    }
+  }
+
+  function triggerAllAlerts(items) {
+    const titlesText = items.map(i => i.title).join(' | ');
+    addLog(`🚨 TROVATI ${items.length} NUOVI PRODOTTI: ${titlesText}`, 'err');
+
+    const banner = document.getElementById('alertBanner');
+    const details = document.getElementById('alertDetails');
+    details.innerHTML = items.map(i => `• <b>${escapeHtml(i.title)}</b>`).join('<br>');
+    banner.style.display = 'block';
+
+    playAlarmSound();
+
+    if ('vibrate' in navigator) {
+      navigator.vibrate([400, 150, 400, 150, 600]);
+    }
+
+    sendBrowserNotification(items);
+
+    if (settings.ntfyTopic) {
+      sendNtfyPush(items);
+    }
+  }
+
+  function dismissAlert() {
+    document.getElementById('alertBanner').style.display = 'none';
+  }
+
+  function initAudio() {
+    if (!audioCtx) {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      if (AudioContext) audioCtx = new AudioContext();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+
+  function playAlarmSound() {
+    try {
+      initAudio();
+      if (!audioCtx) return;
+
+      const freqs = [880, 1108.73, 1318.51, 1760];
+      freqs.forEach((f, idx) => {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(f, audioCtx.currentTime + idx * 0.14);
+
+        gain.gain.setValueAtTime(0.25, audioCtx.currentTime + idx * 0.14);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + idx * 0.14 + 0.35);
+
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(audioCtx.currentTime + idx * 0.14);
+        osc.stop(audioCtx.currentTime + idx * 0.14 + 0.36);
+      });
+    } catch (e) {}
+  }
+
+  async function requestNotificationPermission() {
+    if (!('Notification' in window)) {
+      alert('Su iOS, aggiungi prima questa pagina alla schermata Home (Condividi -> Aggiungi alla schermata Home) per abilitare le notifiche.');
+      return;
+    }
+    try {
+      const perm = await Notification.requestPermission();
+      if (perm === 'granted') {
+        addLog('Permesso notifiche concesso!', 'ok');
+        new Notification('Mornati Monitor Attivo', {
+          body: 'Riceverai un avviso appena esce un nuovo prodotto.'
+        });
+      } else {
+        addLog('Permesso notifiche negato o bloccato.', 'warn');
+      }
+    } catch (e) {
+      addLog('Errore richiesta notifiche: ' + e.message, 'err');
+    }
+  }
+
+  function sendBrowserNotification(items) {
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    try {
+      const first = items[0];
+      const title = items.length > 1
+        ? `🚨 ${items.length} Nuovi Prodotti Mornati!`
+        : `🚨 Nuovo: ${first.title}`;
+
+      const notif = new Notification(title, {
+        body: items.map(i => i.title).join('
+'),
+        tag: 'mornati-new-product'
+      });
+
+      notif.onclick = () => {
+        window.focus();
+        window.open(first.url, '_blank');
+      };
+    } catch (e) {
+      addLog('Impossibile inviare notifica OS: ' + e.message, 'warn');
+    }
+  }
+
+  async function sendNtfyPush(items) {
+    try {
+      const first = items[0];
+      await fetch(`https://ntfy.sh/${encodeURIComponent(settings.ntfyTopic)}`, {
+        method: 'POST',
+        headers: {
+          'Title': `Nuovo Prodotto Mornati (${items.length})`,
+          'Priority': 'high',
+          'Tags': 'rotating_light,shopping_cart',
+          'Click': first.url
+        },
+        body: items.map(i => `${i.title}
+${i.url}`).join('
+
+')
+      });
+      addLog(`Push ntfy inviata al canale "${settings.ntfyTopic}"`, 'ok');
+    } catch (e) {
+      addLog('Errore invio push ntfy: ' + e.message, 'err');
+    }
+  }
+
+  function testAlert() {
+    initAudio();
+    triggerAllAlerts([{
+      title: 'TEST - Pokémon Ultra Premium Collection (Simulazione)',
+      url: 'https://www.mornatipaglia.com/search?q=upc'
+    }]);
+  }
+
+  function renderLists() {
+    const newCard = document.getElementById('newProductsCard');
+    const newList = document.getElementById('newProductsList');
+    const seenList = document.getElementById('seenProductsList');
+
+    if (newProducts.length > 0) {
+      newCard.style.display = 'block';
+      newList.innerHTML = newProducts.map(item => {
+        const mailSubject = encodeURIComponent(`Nuovo Prodotto: ${item.title}`);
+        const mailBody = encodeURIComponent(`Trovato alle ${item.foundAt}:
+${item.title}
+
+Link: ${item.url}`);
+        return `
+          <div class="product-item is-new">
+            <span class="product-badge">NUOVO • ${escapeHtml(item.foundAt)}</span>
+            <a href="${escapeHtml(item.url)}" target="_blank" class="product-title">${escapeHtml(item.title)}</a>
+            <div class="product-actions">
+              <a href="${escapeHtml(item.url)}" target="_blank" class="mini-btn" style="background: var(--accent-orange); color: white; border: none;">Apri Prodotto ↗</a>
+              <a href="mailto:?subject=${mailSubject}&body=${mailBody}" class="mini-btn">✉️ Invia Mail</a>
+            </div>
+          </div>
+        `;
+      }).join('');
+    } else {
+      newCard.style.display = 'none';
+    }
+
+    const seenArray = Object.values(seenProducts).reverse();
+    document.getElementById('archiveBadge').textContent = seenArray.length;
+
+    if (seenArray.length === 0) {
+      seenList.innerHTML = `<div style="color: var(--text-muted); font-size: 0.85rem;">Nessun prodotto ancora salvato.</div>`;
+    } else {
+      seenList.innerHTML = seenArray.map(item => `
+        <div class="product-item">
+          <div style="font-size: 0.72rem; color: var(--text-muted);">Rilevato: ${escapeHtml(item.firstSeen)}</div>
+          <a href="${escapeHtml(item.url)}" target="_blank" class="product-title">${escapeHtml(item.title)}</a>
+        </div>
+      `).join('');
+    }
+  }
+
+  function updateStats() {
+    document.getElementById('newCountVal').textContent = newProducts.length;
+    document.getElementById('seenCountVal').textContent = Object.keys(seenProducts).length;
+  }
+
+  function markAllAsRead() {
+    newProducts = [];
+    saveState();
+    renderLists();
+    updateStats();
+    dismissAlert();
+  }
+
+  function clearHistory() {
+    if (!confirm('Vuoi cancellare tutti i prodotti salvati? Al prossimo controllo verranno re-indicizzati.')) return;
+    seenProducts = {};
+    newProducts = [];
+    saveState();
+    renderLists();
+    updateStats();
+    dismissAlert();
+    addLog('Storico prodotti cancellato.', 'warn');
+  }
+
+  function showError(msg) {
+    const box = document.getElementById('errorBox');
+    box.textContent = msg;
+    box.style.display = 'block';
+  }
+
+  function hideError() {
+    document.getElementById('errorBox').style.display = 'none';
+  }
+
+  function addLog(message, type = '') {
+    const logBox = document.getElementById('logBox');
+    const time = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    const div = document.createElement('div');
+    div.className = `log-entry ${type}`;
+    div.textContent = `[${time}] ${message}`;
+    logBox.prepend(div);
+
+    while (logBox.children.length > 60) {
+      logBox.removeChild(logBox.lastChild);
+    }
+  }
+
+  function clearLogs() {
+    document.getElementById('logBox').innerHTML = '';
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>"']/g, m => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    }[m]));
+  }
+</script>
+</body>
+</html>
